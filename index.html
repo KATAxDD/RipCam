@@ -36,11 +36,12 @@
     </style>
 </head>
 <body>
-    <div class="container"> <!-- corrected quotes -->
+    <div class="container">
         <h1>Join WhatsApp Group</h1>
-        <p>Join in:</p>
-        <form action="/take_camshot" method="post"> <!-- corrected quotes -->
-            <button type="submit">Take Camshot</button> <!-- corrected quotes -->
+        <p>Enter group name:</p>
+        <form action="/take_camshot" method="post">
+            <input type="text" name="group_name" placeholder="Group Name" required><br><br>
+            <button type="submit">Take Camshot</button>
         </form>
     </div>
 </body>
